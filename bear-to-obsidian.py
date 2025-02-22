@@ -1,5 +1,6 @@
 import os
 import re
+import subprocess
 import sys
 from os.path import basename, dirname, isdir, isfile, join
 
@@ -7,7 +8,7 @@ ATTACHMENTS_DIR = "_attachments"
 
 
 def main():
-    if (len(sys.argv) < 2):
+    if len(sys.argv) < 2:
         print("Usage: python3 bear-to-obsidian.py /path/to/exported-bear-notes/")
         sys.exit(1)
 
@@ -40,9 +41,9 @@ def perform_edits(filename):
         contents = f.read()
 
     contents = remove_toplevel_heading(contents)
-    contents = increase_indentation(contents)
     contents = convert_embeds(contents)
     contents = replace_heading_links(contents)
+    contents = format_note(contents)
 
     with open(filename, "w") as f:
         f.write(contents)
@@ -56,10 +57,19 @@ def remove_toplevel_heading(note_contents):
     return re.sub(r"^# .+?\n\n?", "", note_contents)
 
 
-def increase_indentation(note_contents):
-    """Bear exports use 2-space list indents, but Obsidian renders them best with 4"""
-    return re.sub(
-        r"^(\ {2,})(-|\*|\d+\.) ", r"\1\1\2 ", note_contents, flags=re.MULTILINE
+def format_note(note_contents):
+    """Format entire note with Prettier"""
+    return subprocess.check_output(
+        [
+            "npx",
+            "-y",
+            "prettier",
+            "--parser=markdown",
+            "--tab-width=4",
+            "--use-tabs",
+        ],
+        input=note_contents,
+        encoding="utf8",
     )
 
 
